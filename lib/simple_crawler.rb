@@ -193,43 +193,42 @@ end
 # main
 ########################################
 if __FILE__ == $0
+  require 'optparse'
+
+  LOG_LEVELS = {
+    'debug' => Logger::DEBUG,
+    'info'  => Logger::INFO,
+    'warn'  => Logger::WARN,
+    'error' => Logger::ERROR,
+    'fatal' => Logger::FATAL
+  }
+
+  OPTION = {}
+  OPTION[:cfg] = nil
+  OPTION[:dry_run] = true           # デフォルト動作では、実際には実行しない。
+  OPTION[:log_level] = Logger::INFO # デフォルトは INFO
+
+  OPT_PARSER = OptionParser.new()
+  OPT_PARSER.version = '0.0.1'
+  OPT_PARSER.on('-c', '--cfg=CONFIG_FILE', "Crawling configulation file path.") {|v| OPTION[:cfg] = v}
+  OPT_PARSER.on(      '--[no-]run',        'No operation (dry run).')           {|v| OPTION[:dry_run] = !v}
+  OPT_PARSER.on('-l', '--log=LOG_LEVEL',   LOG_LEVELS.keys.join(' | '))         {|v|
+    OPTION[:log_level] = LOG_LEVELS[v]
+    if OPTION[:log_level].nil?
+      raise RuntimeError, "Invalid log level. Log level must be '#{LOG_LEVELS.keys.join(' | ')}'"
+    end
+  }
+
+  OPT_PARSER.parse!(ARGV)
+
+  LOGGER = Logger.new(STDERR)
+  LOGGER.level = Logger::INFO
+  LOGGER.info "OPTION = #{OPTION}"
+
   begin
-    require 'optparse'
-
-    LOG_LEVELS = {
-      'debug' => Logger::DEBUG,
-      'info'  => Logger::INFO,
-      'warn'  => Logger::WARN,
-      'error' => Logger::ERROR,
-      'fatal' => Logger::FATAL
-    }
-
-    OPTION = {}
-    OPTION[:cfg] = nil
-    OPTION[:dry_run] = true           # デフォルト動作では、実際には実行しない。
-    OPTION[:log_level] = Logger::INFO # デフォルトは INFO
-
-    OPT_PARSER = OptionParser.new()
-    OPT_PARSER.version = '0.0.1'
-    OPT_PARSER.on('-c', '--cfg=CONFIG_FILE', "Crawling configulation file path.") {|v| OPTION[:cfg] = v}
-    OPT_PARSER.on(      '--[no-]run',        'No operation (dry run).')           {|v| OPTION[:dry_run] = !v}
-    OPT_PARSER.on('-l', '--log=LOG_LEVEL',   LOG_LEVELS.keys.join(' | '))         {|v|
-      OPTION[:log_level] = LOG_LEVELS[v]
-      if OPTION[:log_level].nil?
-        raise RuntimeError, "Invalid log level. Log level must be '#{LOG_LEVELS.keys.join(' | ')}'"
-      end
-    }
-
-    OPT_PARSER.parse!(ARGV)
-
-    LOGGER = Logger.new(STDERR)
-    LOGGER.level = Logger::INFO
-    LOGGER.info "OPTION = #{OPTION}"
-
     CONF   = SimpleCrawler::Conf.new(OPTION[:cfg])
     RUNNER = SimpleCrawler::Runner.new(CONF, OPTION[:log_level], OPTION[:dry_run])
     RUNNER.run()
-
   rescue Exception => e
     STDERR.puts 'FATAL -- : ' + e.message
     STDERR.puts e.backtrace
